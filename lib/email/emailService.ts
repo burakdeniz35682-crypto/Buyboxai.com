@@ -213,3 +213,70 @@ export const getEmailTemplate = (type: string, data: Record<string, unknown>): s
       return '<p>Email content not found</p>';
   }
 };
+
+export const sendOrderStatusEmail = async (order: {
+  orderNumber: string;
+  userEmail: string;
+  totalAmount?: number;
+  packageId?: { name?: string };
+  selectedCategories?: Array<{ name?: string }>;
+}, type: 'order-received' | 'payment-confirmed' | 'delivered') => {
+  let emailType = '';
+  let subject = '';
+  let data: Record<string, unknown> = {};
+
+  switch (type) {
+    case 'order-received':
+      emailType = 'order_received';
+      subject = `Siparişiniz Alındı! | buyboxtr | Sipariş No: ${order.orderNumber}`;
+      data = {
+        orderNumber: order.orderNumber,
+        packageName: order.packageId?.name || 'Paket',
+        amount: order.totalAmount,
+      };
+      break;
+
+    case 'payment-confirmed':
+      emailType = 'payment_confirmed';
+      subject = `Ödemeniz Onaylandı! | buyboxtr | Sipariş No: ${order.orderNumber}`;
+      data = {
+        orderNumber: order.orderNumber,
+      };
+      break;
+
+    case 'delivered':
+      emailType = 'order_delivered';
+      subject = `İŞTE HAZIR! Buybox Listeniz | Sipariş No: ${order.orderNumber}`;
+      data = {
+        orderNumber: order.orderNumber,
+        categoryCount: order.selectedCategories?.length || 0,
+      };
+      break;
+  }
+
+  const html = getEmailTemplate(emailType, data);
+
+  // For delivered orders, attach Excel file
+  let attachments;
+  if (type === 'delivered') {
+    try {
+      const { generateExcelForOrder } = await import('@/lib/utils/excelGenerator');
+      const excelBuffer = await generateExcelForOrder(order as { selectedCategories: Array<{ _id?: string; name?: string }>; orderNumber: string });
+      attachments = [
+        {
+          filename: `buybox-${order.orderNumber}.xlsx`,
+          content: excelBuffer,
+        },
+      ];
+    } catch (error) {
+      console.error('Failed to generate Excel for email:', error);
+    }
+  }
+
+  return sendEmail({
+    to: order.userEmail,
+    subject,
+    html,
+    attachments,
+  });
+};
