@@ -72,3 +72,29 @@ export const generateExcelFile = async (products: ProductData[]): Promise<Buffer
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
 };
+
+export const generateExcelForOrder = async (order: {
+  selectedCategories: Array<{ _id?: string; name?: string }>;
+  orderNumber: string;
+}): Promise<Buffer> => {
+  // Import ProductLink model
+  const ProductLink = (await import('@/lib/models/ProductLink')).default;
+  
+  // Get products for selected categories
+  const categoryIds = order.selectedCategories.map((cat) => cat._id || cat);
+  const products = await ProductLink.find({
+    category: { $in: categoryIds },
+    isBuyboxAvailable: true,
+  }).populate('category').limit(1000);
+
+  const productData: ProductData[] = products.map((p) => ({
+    url: p.url,
+    category: p.category?.name || 'Unknown',
+    price: p.price,
+    sellerCount: p.sellerCount,
+    platform: p.platform,
+    lastScannedAt: p.lastScannedAt,
+  }));
+
+  return generateExcelFile(productData);
+};
