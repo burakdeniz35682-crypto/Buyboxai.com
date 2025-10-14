@@ -104,7 +104,7 @@ function CheckoutContent() {
       } else {
         alert('Hata: ' + data.error);
       }
-    } catch (error) {
+    } catch {
       alert('Bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
       setLoading(false);

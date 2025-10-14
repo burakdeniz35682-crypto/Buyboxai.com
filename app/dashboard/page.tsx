@@ -46,8 +46,8 @@ export default function DashboardPage() {
       if (data.success) {
         setOrders(data.orders);
       }
-    } catch (error) {
-      console.error('Failed to load orders:', error);
+    } catch {
+      console.error('Failed to load orders');
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ export default function DashboardPage() {
       } else {
         setLoginError(data.error || 'Giriş başarısız');
       }
-    } catch (error) {
+    } catch {
       setLoginError('Bir hata oluştu. Lütfen tekrar deneyin.');
     }
   };
